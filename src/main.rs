@@ -1,7 +1,8 @@
 pub mod fetch;
+pub mod utils;
 
 use chrono::Datelike;
-use std::{error::Error, fs::File, io::BufReader, time::Duration};
+use std::{env, error::Error, fs::File, io::BufReader, time::Duration};
 use tokio::time::interval;
 
 #[tokio::main]
@@ -14,13 +15,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn check_for_new_courses() {
-    let file = File::open("./settings.json").expect("Settings file not found");
-    let app_state: app_state::AppState = serde_json::from_reader(BufReader::new(file)).unwrap();
-
     println!(
         "⏳Checking for new courses to book at: {:?}",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
     );
+
+    let app_state = match utils::get_app_state() {
+        Ok(app_state) => app_state,
+        Err(e) => {
+            return eprintln!("Failed to get app state: {}", e);
+        }
+    };
 
     let john_reed_api = fetch::JohnReedApi::new();
 
