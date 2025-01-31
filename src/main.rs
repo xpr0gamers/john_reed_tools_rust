@@ -14,7 +14,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn check_for_new_courses() {
-    let file = File::open("settings.json").expect("Settings file not found");
+    let file = File::open("./settings.json").expect("Settings file not found");
     let app_state: app_state::AppState = serde_json::from_reader(BufReader::new(file)).unwrap();
 
     println!(
@@ -83,6 +83,7 @@ async fn check_for_new_courses() {
                 }
             };
 
+            //check if course is bookable
             if !bookable_course.is_bookable() {
                 continue;
             }
@@ -126,6 +127,12 @@ async fn check_for_new_courses() {
                     }
                 };
 
+                //check if slot is bookable
+                if !bookable_slot.is_bookable() {
+                    continue;
+                }
+
+                //book course
                 let book_course_result = john_reed_api
                     .book_course(fetch::JohnReedBookCorsePayload {
                         course_appointment_id: bookable_course.id,
