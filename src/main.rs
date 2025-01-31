@@ -2,7 +2,7 @@ pub mod fetch;
 pub mod utils;
 
 use chrono::Datelike;
-use std::{env, error::Error, fs::File, io::BufReader, time::Duration};
+use std::{error::Error, time::Duration};
 use tokio::time::interval;
 
 #[tokio::main]
