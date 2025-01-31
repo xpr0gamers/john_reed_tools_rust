@@ -123,6 +123,8 @@ impl JohnReedApi {
         &self,
         payload: JohnReedBookCorsePayload,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        println!("Booking course with payload: {:?}", payload);
+
         let response = self
             .client
             .post("https://my.johnreed.fitness/nox/v1/calendar/bookcourse")
@@ -160,7 +162,9 @@ pub struct JohnReedLoginPayload {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JohnReedBookCorsePayload {
+    #[serde(rename = "courseAppointmentId")]
     pub course_appointment_id: i64,
+    #[serde(rename = "expectedCustomerStatus")]
     pub expected_customer_status: String,
 }
 
