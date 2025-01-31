@@ -5,7 +5,7 @@ use tokio::time::interval;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut interval = interval(Duration::from_secs(5));
+    let mut interval = interval(Duration::from_secs(30));
     loop {
         interval.tick().await;
         check_for_new_courses().await;
