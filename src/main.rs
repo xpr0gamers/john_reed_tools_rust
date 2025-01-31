@@ -1,5 +1,6 @@
 pub mod fetch;
 
+use chrono::Datelike;
 use std::{error::Error, fs::File, io::BufReader, time::Duration};
 use tokio::time::interval;
 
@@ -87,10 +88,66 @@ async fn check_for_new_courses() {
             }
 
             for time_slot in course.time_slots {
-                println!(
-                    "Checking for course: {} on {} from {}",
-                    course.name, time_slot.start_time, time_slot.end_time
-                );
+                // Find a slot that matches the time slot
+                let bookable_slot = bookable_course.slots.iter().find(|bookable_slot| {
+                    let start_date_time = match bookable_slot.start_date_time {
+                        Some(start_date_time) => start_date_time,
+                        None => {
+                            return false;
+                        }
+                    };
+                    let end_date_time = match bookable_slot.end_date_time {
+                        Some(end_date_time) => end_date_time,
+                        None => {
+                            return false;
+                        }
+                    };
+
+                    let weekday_as_name = start_date_time.weekday().to_string();
+                    if !weekday_as_name.eq_ignore_ascii_case(&time_slot.day.to_string()) {
+                        return false;
+                    }
+
+                    if time_slot.start_time > start_date_time.time() {
+                        return false;
+                    }
+
+                    if time_slot.end_time < end_date_time.time() {
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                let bookable_slot = match bookable_slot {
+                    Some(bookable_slot) => bookable_slot,
+                    None => {
+                        continue;
+                    }
+                };
+
+                let book_course_result = john_reed_api
+                    .book_course(fetch::JohnReedBookCorsePayload {
+                        course_appointment_id: bookable_course.id,
+                        expected_customer_status: "BOOKED".to_string(),
+                    })
+                    .await;
+                match book_course_result {
+                    Ok(_) => {
+                        println!(
+                            "✔Booked course: {} at: {}",
+                            bookable_course.name,
+                            bookable_slot
+                                .start_date_time
+                                .unwrap()
+                                .format("%Y-%m-%d %H:%M:%S")
+                        );
+                    }
+                    Err(e) => {
+                        println!("❌Failed to book course: {}", bookable_course.name);
+                        println!("{:?}", e);
+                    }
+                }
             }
         }
     }
@@ -98,6 +155,7 @@ async fn check_for_new_courses() {
 
 mod app_state {
 
+    use chrono::{NaiveTime, Weekday};
     use serde::Deserialize;
 
     #[derive(Debug, Deserialize, Clone)]
@@ -121,21 +179,10 @@ mod app_state {
 
     #[derive(Debug, Deserialize, Clone)]
     pub struct TimeSlotToBook {
-        pub day: Day,
+        pub day: Weekday,
         #[serde(rename = "startTime")]
-        pub start_time: String,
+        pub start_time: NaiveTime,
         #[serde(rename = "endTime")]
-        pub end_time: String,
-    }
-
-    #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
-    pub enum Day {
-        Sunday,
-        Monday,
-        Tuesday,
-        Wednesday,
-        Thursday,
-        Friday,
-        Saturday,
+        pub end_time: NaiveTime,
     }
 }

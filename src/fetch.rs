@@ -118,12 +118,50 @@ impl JohnReedApi {
         let john_reed_bookable_courses: Vec<JohnReedCourse> = response.json().await?;
         Result::Ok(john_reed_bookable_courses)
     }
+
+    pub async fn book_course(
+        &self,
+        payload: JohnReedBookCorsePayload,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let response = self
+            .client
+            .post("https://my.johnreed.fitness/nox/v1/calendar/bookcourse")
+            .json(&payload)
+            .header("X-Nox-Client-Type", "WEB")
+            .header(
+                "X-Public-Facility-Group",
+                "JOHNREED-65A11AB8FA704F88B2D8EF52523C576A",
+            )
+            .send()
+            .await?;
+
+        let response_status = response.status();
+        if !response_status.is_success() {
+            let body = response.text().await?;
+            return Result::Err(
+                format!(
+                    "failed to book course with status {} and body {}",
+                    response_status, body
+                )
+                .into(),
+            );
+        }
+
+        let _: serde_json::Value = response.json().await?;
+        Result::Ok(())
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct JohnReedLoginPayload {
     pub username: String,
     pub password: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JohnReedBookCorsePayload {
+    pub course_appointment_id: i64,
+    pub expected_customer_status: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -177,6 +215,27 @@ pub struct JohnReedSlot {
         with = "chrono_datetime_fixed_offset"
     )]
     pub earliest_booking_date_time: Option<DateTime<FixedOffset>>,
+}
+
+impl JohnReedSlot {
+    pub fn is_bookable(&self) -> bool {
+        if self.already_booked {
+            return false;
+        }
+        if !self.bookable {
+            return false;
+        }
+        if self.earliest_booking_date_time.is_none() {
+            return false;
+        }
+        if self.earliest_booking_date_time.unwrap().timestamp() > chrono::Local::now().timestamp() {
+            return false;
+        }
+        if self.start_date_time.unwrap().timestamp() < chrono::Local::now().timestamp() {
+            return false;
+        }
+        return true;
+    }
 }
 
 pub mod chrono_datetime_fixed_offset {
