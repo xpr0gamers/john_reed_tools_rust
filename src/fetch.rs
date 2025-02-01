@@ -234,9 +234,6 @@ impl JohnReedSlot {
         if self.earliest_booking_date_time.is_none() {
             return false;
         }
-        if self.earliest_booking_date_time.unwrap().timestamp() > chrono::Local::now().timestamp() {
-            return false;
-        }
         if self.start_date_time.unwrap().timestamp() < chrono::Local::now().timestamp() {
             return false;
         }

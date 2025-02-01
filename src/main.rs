@@ -1,8 +1,7 @@
-pub mod background_worker;
 pub mod fetch;
+pub mod tasks;
 pub mod utils;
 
-use background_worker::BackgroundWorker;
 use std::time::Duration;
 use tokio::time::interval;
 
@@ -17,15 +16,10 @@ async fn main() {
         }
     };
 
-    let background_worker = BackgroundWorker {
-        app_state: app_state,
-        john_reed_api: fetch::JohnReedApi::new(),
-    };
-
     tokio::spawn(async move {
         loop {
             interval_30s.tick().await;
-            background_worker.schedule_book_courses().await;
+            tasks::schedule_book_courses(app_state.clone()).await;
         }
     });
 
