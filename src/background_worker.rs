@@ -1,14 +1,41 @@
-use std::time::Duration;
+use std::{
+    future::Future,
+    thread,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use chrono::Datelike;
 
-use crate::{fetch, utils};
+use crate::{app_state, fetch};
 
-pub struct BackgroundWorker;
+pub struct BackgroundWorker {
+    pub app_state: app_state::AppState,
+    pub john_reed_api: fetch::JohnReedApi,
+}
 
 impl BackgroundWorker {
-    pub fn new() -> Self {
-        BackgroundWorker
+    pub fn run_at_specific_time<F, Fut>(&self, start_time: u64, callback: F)
+    where
+        F: FnOnce() -> Fut + Send + 'static,
+        Fut: Future<Output = ()> + Send,
+    {
+        thread::spawn(move || {
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs();
+
+            if start_time > now {
+                let wait_time = start_time - now;
+                thread::sleep(Duration::from_secs(wait_time));
+            }
+
+            callback();
+        });
+    }
+
+    pub async fn book_courses(&self, user_id: String, course_id: i64) {
+        println!("Book new courses")
     }
 
     /// Schedule new bookable courses for all users
@@ -18,16 +45,9 @@ impl BackgroundWorker {
             chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
         );
 
-        let app_state = match utils::get_app_state() {
-            Ok(app_state) => app_state,
-            Err(e) => {
-                return eprintln!("Failed to get app state: {}", e);
-            }
-        };
-
         let john_reed_api = fetch::JohnReedApi::new();
 
-        for user in app_state.users {
+        for user in self.app_state.users.iter() {
             let login_result = john_reed_api
                 .login(fetch::JohnReedLoginPayload {
                     username: user.username.clone(),
@@ -75,7 +95,7 @@ impl BackgroundWorker {
                 }
             };
 
-            for course in user.courses {
+            for course in user.courses.iter() {
                 let bookable_course = bookable_courses
                     .iter()
                     .find(|bookable_course| bookable_course.name == course.name);
@@ -91,7 +111,7 @@ impl BackgroundWorker {
                     continue;
                 }
 
-                for time_slot in course.time_slots {
+                for time_slot in course.time_slots.iter() {
                     // Find a slot that matches the time slot
                     let bookable_slot = bookable_course.slots.iter().find(|bookable_slot| {
                         let start_date_time = match bookable_slot.start_date_time {

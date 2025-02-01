@@ -9,7 +9,18 @@ use tokio::time::interval;
 #[tokio::main]
 async fn main() {
     let mut interval_30s = interval(Duration::from_secs(30));
-    let background_worker = BackgroundWorker::new();
+
+    let app_state = match utils::get_app_state() {
+        Ok(app_state) => app_state,
+        Err(e) => {
+            return eprintln!("Failed to get app state: {}", e);
+        }
+    };
+
+    let background_worker = BackgroundWorker {
+        app_state: app_state,
+        john_reed_api: fetch::JohnReedApi::new(),
+    };
 
     tokio::spawn(async move {
         loop {
