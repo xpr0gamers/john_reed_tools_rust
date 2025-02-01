@@ -7,11 +7,11 @@ use tokio::time::interval;
 
 #[tokio::main]
 async fn main() {
-    let mut interval = interval(Duration::from_secs(30));
+    let mut interval_30s = interval(Duration::from_secs(30));
 
     tokio::spawn(async move {
         loop {
-            interval.tick().await;
+            interval_30s.tick().await;
             schedule_courses().await;
         }
     });
