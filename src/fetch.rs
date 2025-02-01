@@ -22,7 +22,7 @@ impl JohnReedApi {
     pub async fn login(
         &self,
         payload: JohnReedLoginPayload,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .client
             .post("https://my.johnreed.fitness/login")
@@ -38,7 +38,7 @@ impl JohnReedApi {
         Result::Ok(())
     }
 
-    pub async fn get_user(&self) -> Result<JohnReedMe, Box<dyn std::error::Error>> {
+    pub async fn get_user(&self) -> Result<JohnReedMe, Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .client
             .get("https://my.johnreed.fitness/v1/me/info")
@@ -58,7 +58,9 @@ impl JohnReedApi {
         Result::Ok(john_reed_me)
     }
 
-    pub async fn get_home_studio(&self) -> Result<JohnReedHomeStudio, Box<dyn std::error::Error>> {
+    pub async fn get_home_studio(
+        &self,
+    ) -> Result<JohnReedHomeStudio, Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .client
             .get("https://my.johnreed.fitness/nox/v1/studios/home")
@@ -81,7 +83,7 @@ impl JohnReedApi {
     pub async fn get_bookable_courses(
         &self,
         params: BookableCoursesParams,
-    ) -> Result<Vec<JohnReedCourse>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<JohnReedCourse>, Box<dyn std::error::Error + Send + Sync>> {
         let mut url =
             "https://my.johnreed.fitness/nox/v2/bookableitems/courses/with-canceled?".to_string();
         url += &format!("startDate={}", params.start_date.format("%Y-%m-%d"));
@@ -122,7 +124,7 @@ impl JohnReedApi {
     pub async fn book_course(
         &self,
         payload: JohnReedBookCorsePayload,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         println!("Booking course with payload: {:?}", payload);
 
         let response = self

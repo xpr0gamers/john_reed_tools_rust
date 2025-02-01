@@ -2,19 +2,27 @@ pub mod fetch;
 pub mod utils;
 
 use chrono::Datelike;
-use std::{error::Error, time::Duration};
+use std::time::Duration;
 use tokio::time::interval;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
     let mut interval = interval(Duration::from_secs(30));
+
+    tokio::spawn(async move {
+        loop {
+            interval.tick().await;
+            schedule_courses().await;
+        }
+    });
+
+    // Keep the main task alive
     loop {
-        interval.tick().await;
-        check_for_new_courses().await;
+        tokio::time::sleep(Duration::from_secs(3600)).await; // Sleep for an hour
     }
 }
 
-async fn check_for_new_courses() {
+async fn schedule_courses() {
     println!(
         "⏳Checking for new courses to book at: {:?}",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
