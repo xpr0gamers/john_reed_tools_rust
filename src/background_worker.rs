@@ -1,7 +1,7 @@
 use std::{
     future::Future,
     thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use chrono::Datelike;
@@ -154,6 +154,20 @@ impl BackgroundWorker {
                     if !bookable_slot.is_bookable() {
                         continue;
                     }
+
+                    let time_to_run = Instant::now() + Duration::from_secs(5);
+                    thread::spawn(move || {
+                        tokio::runtime::Runtime::new().unwrap().block_on(async {
+                            let now = Instant::now();
+                            let delay = time_to_run.saturating_duration_since(now);
+                            if delay > Duration::ZERO {
+                                thread::sleep(delay);
+                            }
+
+                            // self.book_courses(user.username.clone(), bookable_course.id.clone())
+                            //     .await;
+                        });
+                    });
 
                     //book course
                     let book_course_result = john_reed_api
